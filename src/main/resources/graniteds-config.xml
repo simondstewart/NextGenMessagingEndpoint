@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans
+    xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:graniteds="http://www.graniteds.org/config"
+    xsi:schemaLocation="
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+        http://www.graniteds.org/config http://www.graniteds.org/public/dtd/3.1.0/granite-config-3.1.xsd">
+
+    <graniteds:server-filter use-big-decimal="true" />
+    <!-- end::graniteds-config[] -->
+
+    <!-- tag::messaging-destination[] -->
+    <!-- 
+    <graniteds:messaging-destination id="feedTopic"/>
+ 	-->
+	<graniteds:activemq-topic-destination id="feedTopic" 
+                                          connection-factory="cachedConnectionFactory"
+                                          destination-jndi-name="sliderDestination.uploadStatusTopic"
+                                          transacted-sessions="false"
+                                          acknowledge-mode="AUTO_ACKNOWLEDGE"
+                                          broker-url="tcp://localhost:61616"
+                                          wait-for-start="false"
+                                          name="feedTopic"
+                                          securizer="customDestinationSecurizer"/>
+
+    <!-- A connection to ActiveMQ Note: Make sure the brokerURL is matching the one used in graniteds-context.xml -->
+    <bean id="connectionFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+        <property name="brokerURL" value="tcp://localhost:61616"/>
+    </bean>
+
+    <!-- A cached connection to wrap the ActiveMQ connection -->
+	<bean id="jmsFactory" class="org.apache.activemq.pool.PooledConnectionFactory"
+		destroy-method="stop">
+		<property name="connectionFactory" ref="connectionFactory"/>	
+	</bean>
+	
+    <!-- A MQTopic Note: Make sure the topic is matching the one used in graniteds-context.xml -->
+    <bean id="messagingTopic" class="org.apache.activemq.command.ActiveMQTopic">
+        <property name="physicalName" value="messagingTopic"/>
+    </bean>
+
+    <!-- A JmsTemplate instance that uses the cached connection and destination -->
+    <bean id="jmsTemplate" class="org.springframework.jms.core.JmsTemplate">
+        <property name="connectionFactory" ref="connectionFactory"/>
+        <property name="defaultDestination" ref="messagingTopic"/>
+        <property name="pubSubDomain" value="true"/>
+    </bean>
+</beans>
